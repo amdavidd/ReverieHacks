@@ -53,9 +53,8 @@ quality = {'Poor': 0, 'Average': 1, 'Good': 2}
 answer = {'No': 0, 'Yes': 1}
 
 def one_hot(df, target_columns):
-    print("Received target_columns:", target_columns, type(target_columns))
     missing_cols = [col for col in target_columns if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Columns {missing_cols} not found in DataFrame")
-    df = pd.get_dummies(df, columns=target_columns, prefix=None, prefix_sep='_', drop_first=False, dtype=int)
+    df = pd.get_dummies(df, columns=target_columns, prefix=None, prefix_sep=' ', drop_first=False, dtype=int)
     return df

@@ -7,7 +7,7 @@
 import streamlit as st 
 import pandas as pd
 
-from sfunc import run_models, one_hot
+from sfunc import parse_data, run_models
 
 
 # Custom CSS to increase font size of widget labels
@@ -69,63 +69,6 @@ def validate_data(data, has_medical_info):
                 return False
     return True
 
-def write_dataframe(data, has_medical_info):
-    if validate_data(data, has_medical_info):
-        df = pd.DataFrame(data, columns=["Age", "Gender", "Pregnancies", "BMI", "Exercise Level", "Max Heart Rate",
-                                         "Air Quality", "Smokes", "Drinks", "Sleep Quality", "Depression", "Chest Pain", 
-                                         "Healthcare Access", 
-                                         "Blood Pressure (sys)", "Blood Pressure (dia)", "Heart Rate", 
-                                         "Insulin", "Glucose", "Cholesterol", "ST Slope"])
-        
-        alzheimers_df = df[['Age', 'BMI', 'Sleep Quality', 'Air Quality', 'Exercise Level', 'Drinks',  'Smoking', 'Depression']]
-        alzheimers_df['Sleep Quality'] = alzheimers_df['Sleep Quality'].map({'Poor': 0, 'Average': 1, 'Good': 2})
-        alzheimers_df['Air Quality'] = alzheimers_df['Air Quality'].map({'Excellent': 0, 'Average': 1, 'Poor': 2})
-        alzheimers_df['Exercise Level'] = alzheimers_df['Exercise Level'].map({'< 100 minutes': 0, '100 - 200 minutes': 1, '> 200 minutes': 2})
-        alzheimers_df['Drinks'] = alzheimers_df['Drinks'].map({'Never': 0, 'Occasionally': 1, 'Regularly': 2})
-        alzheimers_df['Smokes'] = alzheimers_df['Smokes'].map({'Never': 0, 'Former': 1, 'Current': 2})
-        alzheimers_df['Depression'] = alzheimers_df['Depression'].map({'No': 0, 'No, but I commonly experience symptoms': 1, 'Yes': 2})
-        
-        #rename columns
-        alzheimers_df.columns = ['Age', 'BMI', 'Sleep Quality', 'Air Pollution Exposure', 'Physical Activity Level', 'Alcohol Consumption',  'Smoking Status', 'Depression Level']
-        
-        #preview dataset
-        print(alzheimers_df.head())
-
-        diabetes_df = df[['Glucose', 'BMI', 'Age', 'Blood Pressure (dia)', 'Pregnancies', 'Insulin']]
-        diabetes_df.columns = ['Glucose', 'BMI', 'Age', 'BloodPressure', 'Pregnancies', 'Insulin']
-        print(diabetes_df.head())
-        
-        heart_df = df[['ST Slope', 'Cholesterol', 'Max Heart Rate', 'Age', 'Blood Pressure (dia)', 'Gender', 'Chest Pain']]
-        heart_df['ST Slope'] = heart_df['ST Slope'].map({'Up': 2, 'Flat': 1, 'Down': 0})
-        heart_df['Gender'] = heart_df['Gender'].map({'Male': 0, 'Female': 1})
-        heart_df['Chest Pain'] = heart_df['Chest Pain'].map({'No chest pain or discomfort': 'ASY', 
-                                                             'Sharp, stabbing, or burning chest discomfort (during rest)': 'NAP', 
-                                                             'Unusual chest pressure or mild pain (during activity or rest)': 'ATA', 
-                                                             'Heavy or tight chest pain (during activity)': 'TA'})
-        heart_df = one_hot(heart_df, ['Chest Pain'])
-        heart_df.columns = ['ST_Slope', 'Cholesterol', 'MaxHR', 'Age', 'RestingBP', 'Sex', 'ChestPainType_ASY', 'ChestPainType_NAP', 'ChestPainType_TA',  'ChestPainType_ATA']
-        print(heart_df.head())
-
-        hyper_df = df[['Blood Pressure (sys)', 'Blood Pressure (dia)', 'BMI', 'Age', 'Cholesterol', 'Glucose', 'Heart Rate']]
-        hyper_df.columns = ['sysBP', 'diaBP', 'BMI', 'age', 'totChol', 'glucose', 'heartRate']
-        print(hyper_df.head())
-        
-        lung_df = df[['Age', 'Air Quality', 'Healthcare Access', 'Smokes']]
-        lung_df['Air Quality'] = lung_df['Air Quality'].map({'Excellent': 0, 'Average': 1, 'Poor': 2})
-        lung_df['Healthcare Access'] = lung_df['Healthcare Access'].map({'Poor': 0, 'Limited': 1, 'Good': 2})
-        lung_df['Smokes'] = lung_df['Smokes'].map({'Never': 0, 'Former': 1, 'Current': 2})
-        lung_df.columns = ['Age', 'Air Pollution Exposure', 'Healthcare Access', 'Smoking Status']
-        print(lung_df.head())
-
-        stroke_df = df[['Glucose', 'BMI', 'Age', 'Smokes', 'Gender']]
-        stroke_df['Smokes'] = stroke_df['Smokes'].map({'Never': 1, 'Former': 2, 'Current': 3})
-        stroke_df['Gender'] = stroke_df['Gender'].map({'Male': 0, 'Female': 1})
-        stroke_df.columns = ['avg_glucose_level', 'bmi', 'age', 'smoking_status', 'gender', ]
-        print(stroke_df.head())
-    
-        run_models(alzheimers_df, diabetes_df, heart_df, hyper_df, lung_df, stroke_df)
-        return df
-
 def gen_random_data():
     pass
 
@@ -186,8 +129,37 @@ def get_max_heart_rate(age, gender, exercise):
     return max_heart_rate
 
 def get_total_sleep_quality(sleep_time, rested):
-    sleep_quality = 0
+    average_sleep_time = (sleep_time[0] + sleep_time[1]) / 2
+
+    if 7 <= average_sleep_time <= 9:
+        total_score += 2
+    elif 6 <= average_sleep_time < 7 or 9 < average_sleep_time <= 10:
+        total_score += 1
+    else:
+        total_score += 0    
     
+    rested_category_map = {
+        'Almost never (0-1 time(s))': 0,
+        'Rarely (1-2 time(s))': 0,
+        'Sometimes (3-4 times)': 1,
+        'Often (5-6 times)': 2,
+        'Always (6-7 times)': 2,
+    }
+    
+    total_score += rested_category_map[rested]
+    
+    if total_score >= 3:
+        sleep_quality = "Good"
+    elif total_score == 2:
+        sleep_rank = "Fair"
+    else:
+        sleep_rank = "Poor"
+    
+def get_report():
+    pass
+
+
+
 
 st.set_page_config(
     page_title="Chronic Illnesses Prediction",
@@ -340,11 +312,18 @@ else:
             user_depression, user_chest_pain, user_healthcare_access, 
             user_blood_pressure, user_heart_rate, user_insulin, user_glucose, user_cholesterol, 
             user_st_slope]
-            write_dataframe(data, True)
+            if validate_data(data, True):
+                st.success("Data submitted successfully!")
+                results = parse_data(data, True)
+                get_report(results)
+                
             
     #submit button without medical data
     if st.button("Submit"):
         data = [user_age, user_gender, user_pregnancies, user_bmi, user_exercise, user_max_heart_rate, 
             user_air_quality, user_smoking, user_drinks, user_sleep_quality, 
             user_depression, user_chest_pain, user_healthcare_access]
-        write_dataframe(data, False)
+        if validate_data(data, False):
+            st.success("Data submitted successfully!")
+            parse_data(data, False)
+            get_report(results)

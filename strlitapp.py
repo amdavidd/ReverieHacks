@@ -1,14 +1,7 @@
-#from alzheimers import alzheimers_forest
-#from diabetes import diabetes_forest
-#from heart import heart_forest
-#from hyper import hyper_forest
-#from lung import lung_forest
-
 import streamlit as st 
 import pandas as pd
 
-from sfunc import parse_data, run_models
-
+from appfunc import parse_data, run_models
 
 # Custom CSS to increase font size of widget labels
 st.markdown("""
@@ -28,7 +21,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
+# Initialize session state for omitting optional fields
+if 'omit_medical' not in st.session_state:
+    st.session_state.omit_medical = False
+    
 def validate_data(data, has_medical_info):
     acceptable_range = [
         (0, 120), #age
@@ -38,7 +34,7 @@ def validate_data(data, has_medical_info):
         ['< 100 minutes', '100 - 200 minutes', '> 200 minutes'], #Exercise
         (60, 230), #Max Heart Rate
         ['Poor', 'Average', 'Excellent'], #Air Quality
-        ['Never', 'Former', 'Current'], #Smoking
+        ['Never', 'Formerly', 'Currently'], #Smoking
         ['Never', 'Occasionally', 'Regularly'], #Drinks
         ['Poor', 'Fair', 'Good'], #Sleep Quality
         ["Yes", "No", "No, but I commonly experience symptoms"], #Depression
@@ -55,6 +51,7 @@ def validate_data(data, has_medical_info):
         (0, 1000), #Cholesterol
         ['Up', 'Flat', 'Down'] #ST Slope
     ]
+    st.write(data)
     for i in range(len(data)):
         if data[i] is None:
             st.warning("Please fill in all required fields.")
@@ -69,46 +66,51 @@ def validate_data(data, has_medical_info):
                 return False
     return True
 
-def gen_random_data():
-    pass
-
 def gen_pregnancy(gender):
     pregnancies = 0
     if gender == "Female":
-        pregnancies = int(st.number_input(label = "Number of times pregnant:", min_value = 0, max_value = 10, step = 1, format = "%d", placeholder = "Enter your number of pregnancies here!"))
+        pregnancies = int(st.number_input(label = "Number of times pregnant:", step = 1, format = "%d", placeholder = "Enter your number of pregnancies here!"))
     return pregnancies
 
 def get_bmi(system, age):
     if system == 'Metric':
         height = st.number_input(
             label="Height (cm):",
-            min_value=0.0,
-            format="%.1f",  # Use float format to allow decimal input
+            min_value=0,
+            value=170,
+            max_value=250,
+            format="%d",  # Use integer format
             placeholder="Enter your height here!"
         )
         weight = st.number_input(
             label="Weight (kg):",
-            min_value=0.0,
-            format="%.1f",  # Use float format
+            min_value=0,
+            value=70,
+            max_value=500,
+            format="%d",  # Use integer format
             placeholder="Enter your weight here!"
         )
         bmi = weight / ((height / 100) ** 2) if height > 0 else 0
     else:  # Imperial
         height = st.number_input(
             label="Height (in):",
-            min_value=0.0,
-            format="%.1f",  # Use float format
+            min_value=0,
+            value=67,
+            max_value=100,
+            format="%d",  # Use integer format
             placeholder="Enter your height here!"
         )
         weight = st.number_input(
             label="Weight (lbs):",
-            min_value=0.0,
-            format="%.1f",  # Use float format
+            min_value=0,
+            value=150,
+            max_value=1000,
+            format="%d",  # Use integer format
             placeholder="Enter your weight here!"
         )
         bmi = (weight / 2.20462262185) / ((height * 2.54 / 100) ** 2) if height > 0 else 0
-    
-    st.write(f'BMI: {bmi:.1f}')  # Display BMI with one decimal place
+    bmi = float(f"{bmi:.1f}")
+    st.write(f'BMI: {bmi}')  # Display BMI with one decimal place
     return bmi
 
 def get_max_heart_rate(age, gender, exercise):
@@ -130,7 +132,7 @@ def get_max_heart_rate(age, gender, exercise):
 
 def get_total_sleep_quality(sleep_time, rested):
     average_sleep_time = (sleep_time[0] + sleep_time[1]) / 2
-
+    total_score = 0
     if 7 <= average_sleep_time <= 9:
         total_score += 2
     elif 6 <= average_sleep_time < 7 or 9 < average_sleep_time <= 10:
@@ -149,18 +151,13 @@ def get_total_sleep_quality(sleep_time, rested):
     total_score += rested_category_map[rested]
     
     if total_score >= 3:
-        sleep_quality = "Good"
+        sleep_rank = "Good"
     elif total_score == 2:
         sleep_rank = "Fair"
     else:
         sleep_rank = "Poor"
+    return sleep_rank
     
-def get_report():
-    pass
-
-
-
-
 st.set_page_config(
     page_title="Chronic Illnesses Prediction",
     page_icon="",
@@ -171,9 +168,7 @@ st.title("Chronic Illnesses Prediction")
 
 st.subheader("Fill out the brief form below to get a risk assessment! ")
 
-st.subheader("Or, generate a random entry:")
-
-use_random = st.button("Random")
+st.link_button("See project documentation", "https://www.google.com")
 
 user_system = st.radio(
     "Measuring System",
@@ -182,148 +177,149 @@ user_system = st.radio(
     index = 0
     )
 
-if use_random:
-    gen_random_data()
+user_age = st.number_input(label = "Age:", min_value = 0, max_value = 120, value = 45, step = 1, format = "%d", placeholder = "Enter your age here!")
+if user_age is not None:
+    user_age = int(user_age)
+
+user_gender = st.radio(
+    "Gender (Biological)",
+    ["Male", "Female", ":rainbow[gayyyy]",],
+    index = 0
+)    
+user_pregnancies = gen_pregnancy(user_gender)
+
+user_bmi = get_bmi(user_system, user_age)
+
+user_exercise = st.select_slider(
+    "How much exercise do you get every week?",
+    value='100 - 200 minutes',
+    options=[
+        '< 100 minutes',
+        '100 - 200 minutes',
+        '> 200 minutes',
+    ],
+    help="Select a point to rate your exercise quantity."
+)
+
+user_max_heart_rate = get_max_heart_rate(user_age, user_gender, user_exercise)
+
+user_air_quality = st.selectbox(
+    "How would you rate the air quality in your area?",
+    ("Poor", "Average", "Excellent"),
+    index=0,
+    placeholder="Select air quality...",
+)
+    
+user_smoking = st.selectbox(
+    "Have you ever been a smoker / lived with a smoker?",
+    ("Never", "Formerly", "Currently"),
+    index=0,
+    placeholder="Select smoking status...",
+)
+
+user_drinks = st.selectbox(
+    "How often do you drink alcohol?",
+    ("Never", "Occasionally", "Regularly"),
+    index=0,
+    placeholder="Select alcohol status...",
+)
+
+user_sleep_time = st.slider("How many hours of sleep do you get per night?", 3, 12, (7, 8))
+
+user_rested = st.select_slider(
+    "How often would you say you feel well-rested every week?",     
+    value="Sometimes (3-4 times)",
+    options=['Almost never (0-1 time(s))',
+    'Rarely (1-2 time(s)',
+    'Sometimes (3-4 times)',
+    'Often (5-6 times)',
+    'Always (6-7 times)'],
+    help="Select a point to rate your sleep quality."
+)
+
+user_sleep_quality = get_total_sleep_quality(user_sleep_time, user_rested)
+
+user_depression = st.radio(
+    "Have you been medically diagnosed with depression?",
+    ["Yes", "No", "No, but I commonly experience symptoms"],
+    index = 1
+)
+
+user_chest_pain = st.selectbox(
+    "Which of these best explain your chest pain symptoms (if any)?",
+    ("No chest pain or discomfort", 
+        "Sharp, stabbing, or burning chest discomfort (during rest)", 
+        "Unusual chest pressure or mild pain (during activity or rest)", 
+        "Heavy or tight chest pain (during activity)"),
+    index=0,
+    placeholder="Select chest pain type...",
+    help="Choose what matches your chest discomfort, or 'No chest pain' if unsure."
+)
+
+user_healthcare_access = st.selectbox(
+    "How would you rate the quality of the healthcare available to you?",
+    ('Poor', 'Limited', 'Good'),
+    index=0,
+    placeholder="Select healthcare access...",
+)
+
+st.write()
+st.write()
+st.subheader("The additional fields below likely require medically tested information and are thus optional. However, completing them will improve the accuracy.")    
+st.write()
+st.write()
+
+# Handle "Toggle optional fields" button
+if st.button("Toggle optional fields"):
+    st.session_state.omit_medical = not st.session_state.omit_medical
+
+if not st.session_state.omit_medical:
+    user_blood_pressure = st.text_input("Blood Pressure in mmHg (Systolic/Diastolic)",
+                                        value = "120/80",  
+                                        placeholder="Enter your blood pressure...")
+    user_blood_pressure_list = user_blood_pressure.split('/')
+    user_systolic_blood_pressure = int(user_blood_pressure_list[0].strip())
+    user_diastolic_blood_pressure = int(user_blood_pressure_list[1].strip())
+
+    user_heart_rate = st.number_input("Current Heart Rate (bpm)",
+                                        value = 72, 
+                                        placeholder = "Enter your heart rate...")
+
+    user_insulin = st.number_input("Insulin: 2-Hour serum insulin (mu U/ml)", 
+                                        value = 79.8, 
+                                        placeholder = "Enter your insulin level...")
+
+    user_glucose = st.number_input("Plasma glucose concentration a 2 hours in an oral glucose tolerance test",
+                                        value = 121, 
+                                        placeholder = "Enter your glucose level...")
+
+    user_cholesterol = st.number_input("Total serum cholesterol (mg/dl)",
+                                        value = 180, 
+                                        placeholder = "Enter your cholesterol level...")
+
+    user_st_slope = st.selectbox("ST segment slope observed during exercise stress test", 
+                                        ("Flat", "Up", "Down"),
+                                        index=0,
+                                        placeholder="Select ST segment slope...")
+    if st.button("Submit with medical data"):
+        data = [user_age, user_gender, user_pregnancies, user_bmi, user_exercise, user_max_heart_rate, 
+        user_air_quality, user_smoking, user_drinks, user_sleep_quality, 
+        user_depression, user_chest_pain, user_healthcare_access, 
+        user_systolic_blood_pressure, user_diastolic_blood_pressure, user_heart_rate, user_insulin, 
+        user_glucose, user_cholesterol, user_st_slope]
+        if validate_data(data, True):
+            st.success("Data submitted successfully!")
+            results = parse_data(data, True)
+            st.write(run_models(results))
 else:
-    user_age = st.number_input(label = "Age:", min_value = 0, max_value = 120, step = 1, format = "%d", value = None, placeholder = "Enter your age here!")
-    if user_age is not None:
-        user_age = int(user_age)
-    
-    user_gender = st.radio(
-        "Gender (Biological)",
-        ["Male", "Female", ":rainbow[gayyyy]",],
-        index = None
-    )    
-    user_pregnancies = gen_pregnancy(user_gender)
-    
-    user_bmi = get_bmi(user_system, user_age)
-    
-    user_exercise = st.select_slider(
-        "How much exercise do you get every week?",
-        value='100 - 200 minutes',
-        options=[
-            '< 100 minutes',
-            '100 - 200 minutes',
-            '> 200 minutes',
-        ],
-        help="Select a point to rate your exercise quantity."
-    )
+    st.write("Optional fields omitted.")
 
-    user_max_heart_rate = get_max_heart_rate(user_age, user_gender, user_exercise)
-
-    user_air_quality = st.selectbox(
-        "How would you rate the air quality in your area?",
-        ("Poor", "Average", "Excellent"),
-        index=0,
-        placeholder="Select air quality...",
-    )
-        
-    user_smoking = st.selectbox(
-        "Have you ever been a smoker / lived with a smoker?",
-        ("Never", "Formerly", "Currently"),
-        index=0,
-        placeholder="Select smoking status...",
-    )
-    
-    user_drinks = st.selectbox(
-        "How often do you drink alcohol?",
-        ("Never", "Occasionally", "Regularly"),
-        index=0,
-        placeholder="Select alcohol status...",
-    )
-    
-    user_sleep_time = st.slider("How many hours of sleep do you get per night?", 3, 12, (7, 8))
-    
-    user_rested = st.select_slider(
-        "How often would you say you feel well-rested every week?",     
-        value="Sometimes (3-4 times)",
-        options = ['Almost never (0-1 time(s))',
-        'Rarely (1-2 time(s)',
-        'Sometimes (3-4 times)',
-        'Often (5-6 times)',
-        'Always (6-7 times)'],
-        help="Select a point to rate your sleep quality."
-    )
-
-    user_sleep_quality = get_total_sleep_quality(user_sleep_time, user_rested)
-
-    user_depression = st.radio(
-        "Have you been medically diagnosed with depression?",
-        ["Yes", "No", "No, but I commonly experience symptoms"],
-        index = None
-    )
-    
-    user_chest_pain = st.selectbox(
-        "Which of these best explain your chest pain symptoms (if any)?",
-        ("No chest pain or discomfort", 
-         "Sharp, stabbing, or burning chest discomfort (during rest)", 
-         "Unusual chest pressure or mild pain (during activity or rest)", 
-         "Heavy or tight chest pain (during activity)"),
-        index=0,
-        placeholder="Select chest pain type...",
-        help="Choose what matches your chest discomfort, or 'No chest pain' if unsure."
-    )
-
-    user_healthcare_access = st.selectbox(
-        "How would you rate the quality of the healthcare available to you?",
-        ('Poor', 'Limited', 'Good'),
-        index=0,
-        placeholder="Select healthcare access...",
-    )
-
-    st.write()
-    st.write()
-    st.subheader("The additional fields below likely require medically tested information and are thus optional. However, completing them will improve the accuracy.")    
-    st.write()
-    st.write()
-
-    if not st.button("Omit optional fields"):
-        user_blood_pressure = st.text_input("Blood Pressure in mmHg (Systolic/Diastolic)",
-                                            value = "120 / 80",  
-                                            placeholder="Enter your blood pressure...")
-        
-        user_blood_pressure = st.text_input("Blood Pressure in mmHg (Systolic/Diastolic)",
-                                            value = "120 / 80",  
-                                            placeholder="Enter your blood pressure...")
-
-        user_heart_rate = st.text_input("Current Heart Rate (bpm)", 
-                                            value = 72, 
-                                            placeholder = "Enter your heart rate...")
-
-        user_insulin = st.text_input("Insulin: 2-Hour serum insulin (mu U/ml)", 
-                                            value = 79.8, 
-                                            placeholder = "Enter your insulin level...")
-    
-        user_glucose = st.text_input("Plasma glucose concentration a 2 hours in an oral glucose tolerance test",
-                                            value = 121, 
-                                            placeholder = "Enter your glucose level...")
-    
-        user_cholesterol = st.text_input("Total serum cholesterol (mg/dl)",
-                                            value = 180, 
-                                            placeholder = "Enter your cholesterol level...")
-    
-        user_st_slope = st.selectbox("ST segment slope observed during exercise stress test", 
-                                            ("Flat", "Up", "Down"),
-                                            index=0,
-                                            placeholder="Select ST segment slope...")
-        if st.button("Submit"):
-            data = [user_age, user_gender, user_pregnancies, user_bmi, user_exercise, user_max_heart_rate, 
-            user_air_quality, user_smoking, user_drinks, user_sleep_time, user_sleep_quality, 
-            user_depression, user_chest_pain, user_healthcare_access, 
-            user_blood_pressure, user_heart_rate, user_insulin, user_glucose, user_cholesterol, 
-            user_st_slope]
-            if validate_data(data, True):
-                st.success("Data submitted successfully!")
-                results = parse_data(data, True)
-                get_report(results)
-                
-            
     #submit button without medical data
-    if st.button("Submit"):
+    if st.button("Submit without medical data"):
         data = [user_age, user_gender, user_pregnancies, user_bmi, user_exercise, user_max_heart_rate, 
             user_air_quality, user_smoking, user_drinks, user_sleep_quality, 
             user_depression, user_chest_pain, user_healthcare_access]
         if validate_data(data, False):
             st.success("Data submitted successfully!")
-            parse_data(data, False)
-            get_report(results)
+            results = parse_data(data, False)
+            st.write(run_models(results))

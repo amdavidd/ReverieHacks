@@ -1,9 +1,9 @@
 from alzheimers import alzheimers_forest
-from diabetes import diabetes_forest
-from heart import heart_forest
-from hyper import hyper_forest
+from diabetes import diabetes_forest, diabetes_forest_small
+from heart import heart_forest, heart_forest_small
+from hyper import hyper_forest, hyper_forest_small
 from lung import lung_forest
-from stroke import stroke_forest
+from stroke import stroke_forest, stroke_forest_small
 
 import pandas as pd
 def parse_data(data, has_medical_info):
@@ -110,6 +110,7 @@ def parse_data(data, has_medical_info):
 
         # Drop the original Chest Pain column
         heart_df = heart_df.drop(columns=['Chest Pain'])
+        heart_df.columns = ['MaxHR', 'Age', 'Sex', 'ChestPainType_ASY', 'ChestPainType_NAP', 'ChestPainType_TA',  'ChestPainType_ATA']
 
         hyper_df = df[['BMI', 'Age']]
         hyper_df.columns = ['BMI', 'age']
@@ -129,13 +130,30 @@ def parse_data(data, has_medical_info):
         print(stroke_df.head())
         return [alzheimers_df, diabetes_df, heart_df, hyper_df, lung_df, stroke_df] 
 
-def run_models(dataframes):
-    alzheimers_result = alzheimers_forest.predict_proba(dataframes[0])
-    diabetes_result = diabetes_forest.predict_proba(dataframes[1])
-    heart_result = heart_forest.predict_proba(dataframes[2])
-    hyper_result = hyper_forest.predict_proba(dataframes[3])
-    lung_result = lung_forest.predict_proba(dataframes[4])
-    stroke_result = stroke_forest.predict_proba(dataframes[5])
-    results = [alzheimers_result, diabetes_result, heart_result, hyper_result, lung_result, stroke_result]
-    print(results)
-    return results
+def run_models(dataframes, has_medical_info):
+    if has_medical_info:
+        alzheimers_result = alzheimers_forest.predict_proba(dataframes[0])
+        diabetes_result = diabetes_forest.predict_proba(dataframes[1])
+        heart_result = heart_forest.predict_proba(dataframes[2])
+        hyper_result = hyper_forest.predict(dataframes[3])
+        lung_result = lung_forest.predict_proba(dataframes[4])
+        stroke_result = stroke_forest.predict(dataframes[5])
+        results = [alzheimers_result, diabetes_result, heart_result, hyper_result, lung_result, stroke_result]
+    else:
+        alzheimers_result = alzheimers_forest.predict_proba(dataframes[0])
+        diabetes_result = diabetes_forest_small.predict_proba(dataframes[1])
+        heart_result = heart_forest_small.predict_proba(dataframes[2])
+        hyper_result = hyper_forest_small.predict(dataframes[3])
+        lung_result = lung_forest.predict_proba(dataframes[4])
+        stroke_result = stroke_forest_small.predict(dataframes[5])
+        results = [alzheimers_result, diabetes_result, heart_result, hyper_result, lung_result, stroke_result]
+
+    dataframe = pd.DataFrame({
+        "Alzheimers": results[0][0][1],
+        "Diabetes": results[1][0][1],
+        "Heart Disease": results[2][0][1],
+        "Hypertension": results[3][0],
+        "Lung Disease": results[4][0][1],
+        "Stroke": results[5][0]
+    }, index=[0])
+    return dataframe

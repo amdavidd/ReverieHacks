@@ -17,8 +17,7 @@ lung = pd.read_csv('Datasets/lung_cancer.csv')
 
 # In[4]:
 
-
-lung = lung.sample(random_state=3, n=1000)
+lung = lung.sample(n=100000, random_state=3)
 print(len(lung))
 
 
@@ -58,7 +57,7 @@ lung = one_hot(lung, ['Rural or Urban'], ' ')
 
 lung['Gender'] = lung['Gender'].map({'Male': 0, 'Female': 1})
 
-lung['Smoking Status'] = lung['Smoking Status'].map({'Non-Smoker': 0, 'Former Smoker': 1, 'Current Smoker': 2})
+lung['Smoking Status'] = lung['Smoking Status'].map({'Non-Smoker': 0, 'Former Smoker': 1, 'Smoker': 2})
 
 lung['Second Hand Smoke'] = lung['Second Hand Smoke'].map(answer)
 
@@ -66,7 +65,7 @@ lung['Air Pollution Exposure'] = lung['Air Pollution Exposure'].map(intensity)
 
 lung['Occupation Exposure'] = lung['Occupation Exposure'].map(answer)
 
-lung['Socioeconomic Status'] = lung['Socioeconomic Status'].map({'Low' : 0, 'Medium': 1, 'High': 2})
+lung['Socioeconomic Status'] = lung['Socioeconomic Status'].map({'Low' : 0, 'Middle': 1, 'High': 2})
 
 lung['Healthcare Access'] = lung['Healthcare Access'].map({'Poor': 0, 'Limited': 1, 'Good': 2})
 
@@ -109,7 +108,5 @@ print(lung.corr()['Final Prediction'].sort_values(key = lambda x: x.abs(), ascen
 
 
 test_forest = run_forest(lung, 'Final Prediction')
-
 cleaned_lung = lung[['Age', 'Air Pollution Exposure', 'Healthcare Access', 'Smoking Status', 'Final Prediction']]
 lung_forest = run_forest(cleaned_lung, 'Final Prediction')
-

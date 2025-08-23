@@ -71,4 +71,5 @@ print(heart.corr()['HeartDisease'].sort_values(key = lambda x: x.abs(), ascendin
 test_forest = run_forest(heart, 'HeartDisease')
 heart_cleaned = heart[['ST_Slope', 'Cholesterol', 'MaxHR', 'Age', 'RestingBP', 'Sex', 'ChestPainType_ASY', 'ChestPainType_NAP', 'ChestPainType_TA',  'ChestPainType_ATA', 'HeartDisease']]
 heart_forest = run_forest(heart_cleaned, 'HeartDisease')
-
+heart_cleaned_small = heart[['MaxHR', 'Age', 'Sex', 'ChestPainType_ASY', 'ChestPainType_NAP', 'ChestPainType_TA',  'ChestPainType_ATA', 'HeartDisease']]
+heart_forest_small = run_forest(heart_cleaned_small, 'HeartDisease')

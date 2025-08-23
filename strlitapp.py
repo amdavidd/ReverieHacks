@@ -1,12 +1,12 @@
 import streamlit as st 
 import pandas as pd
+import plotly.express as px
 
 from appfunc import parse_data, run_models
 
 # Custom CSS to increase font size of widget labels
 st.markdown("""
     <style>
-    /* select all input labels */
     div[data-testid="stSlider"] label,
     div[data-testid="stSelectbox"] label,
     div[data-testid="stRadio"] label,
@@ -18,12 +18,19 @@ st.markdown("""
     div[class*="stSlider"] {
         font-size: 16px !important; /* Adjust font size for slider content */
     }
+    .main { background-color: #f5f7fa; padding: 20px; border-radius: 10px; }
+    .stDataFrame { border: 2px solid #4a90e2; border-radius: 8px; }
+    .high-risk { background-color: #ff4d4d; color: white; font-weight: bold; }
+    .low-risk { background-color: #4caf50; color: white; }
+    h1, h2, h3 { color: #2c3e50; }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for omitting optional fields
+# Initialize session state variables
 if 'omit_medical' not in st.session_state:
-    st.session_state.omit_medical = False
+    st.session_state.omit_medical = True
+if 'results_df' not in st.session_state:
+    st.session_state.results_df = None  
     
 def validate_data(data, has_medical_info):
     acceptable_range = [
@@ -183,7 +190,7 @@ if user_age is not None:
 
 user_gender = st.radio(
     "Gender (Biological)",
-    ["Male", "Female", ":rainbow[gayyyy]",],
+    ["Male", "Female"],
     index = 0
 )    
 user_pregnancies = gen_pregnancy(user_gender)
@@ -230,7 +237,7 @@ user_rested = st.select_slider(
     "How often would you say you feel well-rested every week?",     
     value="Sometimes (3-4 times)",
     options=['Almost never (0-1 time(s))',
-    'Rarely (1-2 time(s)',
+    'Rarely (1-2 time(s))',
     'Sometimes (3-4 times)',
     'Often (5-6 times)',
     'Always (6-7 times)'],
@@ -310,7 +317,8 @@ if not st.session_state.omit_medical:
         if validate_data(data, True):
             st.success("Data submitted successfully!")
             results = parse_data(data, True)
-            st.write(run_models(results))
+            results_df = run_models(results, True)
+            st.session_state.results_df = results_df
 else:
     st.write("Optional fields omitted.")
 
@@ -322,4 +330,68 @@ else:
         if validate_data(data, False):
             st.success("Data submitted successfully!")
             results = parse_data(data, False)
-            st.write(run_models(results))
+            results_df = run_models(results, False)
+            st.session_state.results_df = results_df            
+
+def highlight_risk(val):
+    if isinstance(val, (int, float)):
+        if val < 0.3:
+            return 'background-color: #4caf50; color: white'
+        elif val < 0.65:
+            return 'background-color: #ffcc00; color: black'
+        else:
+            return 'background-color: #ff4d4d; color: white'
+    return ''
+
+if st.session_state.results_df is not None:
+    results_df = st.session_state.results_df
+    # Display styled DataFrame
+    st.subheader("Risk Probabilities")
+    st.dataframe(
+        results_df.style.format("{:.3f}").applymap(highlight_risk, subset=results_df.columns),
+        use_container_width=True
+    )
+
+    #Display Bar chart
+    st.subheader("Risk Distribution")
+    fig = px.bar(
+        x=results_df.columns,
+        y=results_df.iloc[0],
+        color=results_df.iloc[0],
+        color_continuous_scale=px.colors.sequential.Plasma,
+        opacity=0.8
+    )
+    fig.update_layout(
+        showlegend=False,
+        plot_bgcolor="#1e1e1e",  
+        paper_bgcolor="#1e1e1e", 
+        font_color="#ffffff", 
+        title_font_color="#ffffff", 
+        xaxis_gridcolor="rgba(255, 255, 255, 0.2)",  
+        yaxis_gridcolor="rgba(255, 255, 255, 0.2)", 
+        xaxis_title_font_color="#ffffff",
+        yaxis_title_font_color="#ffffff"
+    )
+    fig.update_traces(
+        marker_line_color="#ffffff", 
+        marker_line_width=1.5  
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+    **Interpretation**: 
+    - Values > 0.65 (red): higher risks --- consult a healthcare professional.
+    - Values > 0.35 (yellow): moderate risks --- consider lifestyle changes.
+    - Values ≤ 0.5 (green): lower risks --- maintain healthy habits.
+    """)
+
+    # Download results
+    csv = results_df.to_csv(index=False)
+    st.download_button(
+        label="Download Results as CSV",
+        data=csv,
+        file_name="health_risk_results.csv",
+        mime="text/csv"
+    )
+else:
+    pass

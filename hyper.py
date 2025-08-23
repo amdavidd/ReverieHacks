@@ -7,7 +7,7 @@
 import pandas as pd 
 import numpy as np
 
-from sfunc import run_forest, one_hot, answer, intensity, quality
+from sfunc import run_forest_regressor, one_hot, answer, intensity, quality
 
 
 # In[ ]:
@@ -50,7 +50,8 @@ hyper.describe()
 # In[ ]:
 
 
-test_forest = run_forest(hyper, 'Risk')
+test_forest = run_forest_regressor(hyper, 'Risk')
 cleaned_hyper = hyper[['sysBP', 'diaBP', 'BMI', 'age', 'totChol', 'glucose', 'heartRate', 'Risk']]
-hyper_forest = run_forest(cleaned_hyper, 'Risk')
-
+hyper_forest = run_forest_regressor(cleaned_hyper, 'Risk')
+cleaned_hyper_small = hyper[['BMI', 'age', 'Risk']]
+hyper_forest_small = run_forest_regressor(cleaned_hyper_small, 'Risk')

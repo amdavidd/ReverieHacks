@@ -7,7 +7,7 @@
 import pandas as pd 
 import numpy as np
 
-from sfunc import run_forest, one_hot, answer, intensity, quality
+from sfunc import run_forest_regressor, one_hot, answer, intensity, quality
 
 
 # In[28]:
@@ -74,7 +74,8 @@ print(stroke.corr()['stroke'].sort_values(key = lambda x: x.abs(), ascending = F
 # In[39]:
 
 
-test_forest = run_forest(stroke, 'stroke')
+test_forest = run_forest_regressor(stroke, 'stroke')
 stroke_cleaned = stroke[['avg_glucose_level', 'bmi', 'age', 'smoking_status', 'gender', 'stroke']]
-stroke_forest = run_forest(stroke_cleaned, 'stroke')
-
+stroke_forest = run_forest_regressor(stroke_cleaned, 'stroke')
+stroke_cleaned_small = stroke[['bmi', 'age', 'smoking_status', 'gender', 'stroke']]
+stroke_forest_small = run_forest_regressor(stroke_cleaned_small, 'stroke')

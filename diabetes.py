@@ -9,18 +9,7 @@ import numpy as np
 
 from sfunc import run_forest, one_hot, answer, intensity, quality
 
-
-# In[10]:
-
-
-import pandas as pd 
-import numpy as np
-
-from sfunc import run_forest, one_hot, answer, intensity, quality
-
-
 # In[11]:
-
 
 diabetes = pd.read_csv('Datasets/diabetes.csv')
 
@@ -62,4 +51,5 @@ diabetes.describe()
 test_forest = run_forest(diabetes, 'Outcome')
 cleaned_diabetes = diabetes[['Glucose', 'BMI', 'Age', 'BloodPressure', 'Pregnancies', 'Insulin', 'Outcome']]
 diabetes_forest = run_forest(cleaned_diabetes, 'Outcome')
-
+cleaned_diabetes_small = diabetes[['BMI', 'Age', 'Pregnancies', 'Outcome']]
+diabetes_forest_small = run_forest(cleaned_diabetes_small, 'Outcome')

@@ -7,14 +7,12 @@
 import pandas as pd
 import numpy as np
 
-from sfunc import run_forest, one_hot, answer, intensity, quality
-
+from sfunc import run_forest, one_hot, answer, intensity, quality, plot_shap_summary
 
 # In[2]:
 
 
 alzheimers = pd.read_csv('Datasets/alzheimers.csv')
-alzheimers = alzheimers[:1000]
 
 # In[3]:
 
@@ -31,6 +29,7 @@ print(len(alzheimers))
 # In[5]:
 
 
+
 alzheimers.columns = alzheimers.columns.str.strip().str.replace('’', '', regex=False)
 alzheimers = alzheimers.rename(columns={
     'Genetic Risk Factor (APOE-ε4 allele)': 'Genetic Risk',
@@ -40,6 +39,9 @@ print(alzheimers.columns)
 print(alzheimers['Education Level'].value_counts())
 alzheimers.head()
 
+print("Preprocessed alzheimers shape:", alzheimers.shape)
+print("Preprocessed alzheimers columns:", alzheimers.columns.tolist())
+print("Alzheimers Diagnosis value counts:", alzheimers['Alzheimers Diagnosis'].value_counts(normalize=True))
 
 # In[6]:
 
@@ -113,4 +115,5 @@ alzheimers.describe()
 test_forest = run_forest(alzheimers, 'Alzheimers Diagnosis')
 cleaned_alzheimers = alzheimers[['Age', 'BMI', 'Sleep Quality', 'Air Pollution Exposure', 'Physical Activity Level', 'Alcohol Consumption',  'Smoking Status', 'Depression Level', 'Alzheimers Diagnosis']]
 alzheimers_forest = run_forest(cleaned_alzheimers, 'Alzheimers Diagnosis')
+
 
